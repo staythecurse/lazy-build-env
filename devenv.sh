@@ -167,7 +167,7 @@ project_edit(){
         echo "Opening last file: $path"
         nano $path
     else
-        path=$(find -type f -name $filename)
+        path=$(find -type f -wholename $filename)
         echo "Opening file: $path"
         nano $path
         lastEditedFile=$filename
