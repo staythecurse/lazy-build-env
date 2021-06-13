@@ -5,13 +5,59 @@
 # do not look outside of the directory
 # this script is run from.
 
+
+
+
+
 set -e
 
-arg1=$1 # source file name
-arg2=$2 # argument to program (if it compiles to a single executable)
+arg1=$1 # source file name including dot file extention e.g. "test.cc"
+arg2=$2 # argument to program # DEPRECATED - use "run.sh" config file
 
-# config options
+sourceFile=${arg1}
+exe=${arg1%.*} # executable file to build same as source without file extention e.g. "test"
+
+
+# -----------------------
+###
+##### CONFIG OPTIONS
+###
+# -----------------------
+
+
+
+
+# TOOLCHAIN
 hexeditor="hexcurse"
+debugger="gdb"
+
+# COMPILER CONFIG
+# additional include directories
+addIncludes='/home/${USER}/libs/'
+
+
+# source file suffixes
+csource="*.c"
+cppsource="*.cc"
+cppsource2="*.cpp"
+asm="*.S"
+header="*.h"
+scripts="*.sh"
+makefile="make.config"
+
+
+# use the alternate screen buffer (output lost upon exiting devenv)
+#tput smcup
+
+
+# -----------------------
+###
+##### END CONFIG OPTIONS
+###
+# -----------------------
+
+
+
 
 # script colors
 black=`tput setaf 0`
@@ -38,26 +84,147 @@ reset=`tput sgr0`
 lastEditedFile=$1
 lastHexeditedfile=''
 
-# source file suffixes
-csource="*.c"
-cppsource="*.cc"
-asm="*.S"
-header="*.h"
-scripts="*.sh"
-makefile="make.config"
+
+
+
 
 echo "${green}+----------------------+"
         echo "| Lazy Build Env v0.01 |"
         echo "+----------------------+${reset}"
 
+
+
+
+check_file_exists(){
+    set +e
+
+    local filename=$1
+
+    path=$(find -type f -name $filename)
+
+    if [ -z $path ];
+    then
+        printf "File: ${red}${filename}${reset} does not exist. Create it?"
+        read input
+        case $input in
+          [yY])
+            touch $filename
+          ;;
+
+          [nN])
+          ;;
+        esac
+    fi
+    path=$(find -type f -name $filename)
+
+    set -e
+}
+
+
+
+create_build_script(){
+    set +e
+
+    # create a default build.sh file
+    output="build.sh"
+    printf '%s\n' \
+           "#!/bin/bash" \
+           "" \
+           "compiler=\"g++\"" \
+           "compilerArgs=\"-g\"" \
+           "includePath=\"${addIncludes}\"" \
+           "sourceFiles=\"${sourceFile}\"" \
+           "outFile=\"${exe}\"" \
+           "linkLibs=\"\"" \
+           "CFLAGS=\"\"" \
+           "" \
+           "echo \"Compiling...\"" \
+           "" \
+           "time \\" \
+           "\${compiler} \\" \
+           "\${compilerArgs} \\" \
+           "-I\${includePath} \\" \
+           "\${sourceFiles} \\" \
+           "-o \${outFile} \\" \
+           "#-l\${linkLibs} \\" \
+           "#\${CFLAGS} \\" \
+    >> "$output"
+
+    set -e
+}
+
+
+
+create_run_script(){
+    set +e
+
+    output="run.sh"
+    printf '%s\n' \
+           "#!/bin/bash" \
+           "" \
+           "./${exe}" \
+    >> "$output"
+
+    set -e
+}
+
+
+
+create_debug_script(){
+    set +e
+
+    output="debug.sh"
+    printf '%s\n' \
+           "#!/bin/bash" \
+           "" \
+           "${debugger} -f ${exe}" \
+    >> "$output"
+
+    set -e
+}
+
+
+
+project_configure(){
+    set +e
+
+    if [ ! -f "./build.sh" ];
+    then
+        create_build_script
+    fi
+
+    if [ ! -f "./run.sh" ];
+    then
+        create_run_script
+    fi
+
+    if [ ! -f "./debug.sh" ];
+    then
+        create_debug_script
+    fi
+
+
+    nano build.sh
+    nano run.sh
+    nano debug.sh
+
+    set -e
+}
+
+
+
 project_list(){
     set +e
+
+    echo "\n${green}Project root: ${reset}"
+    pwd
 
     echo "\n${green}C source: ${reset}\n"
     find -name "$csource"
 
     echo "\n${green}C++ source: ${reset}\n"
     find -name "$cppsource"
+    find -name "$cppsource2"
 
     echo "\n${green}C headers: ${reset}\n"
     find -name "$header"
@@ -92,22 +259,11 @@ project_search(){
 project_build(){
     set +e
 
-    file=$1
-
-    echo "File is - $file -"
-    echo
-
-    if [ -z "$file" ];
+    if [ ! -f "./build.sh" ];
     then
-        echo "${red}No C++ file to build${reset}"
-        echo "Enter filename: "
-        read file
-        project_build $file
+        echo "No ${red}build${reset} file found.  Do ${red}[C]${reset}onfigure to create one"
     else
-        # compile with debug symbols
-        gcc -v -o0 -g -lstdc++ "${file}" -o "${file%.*}"
-        # no debug symbols -o3 optimization
-#        gcc -v -o3 -lstdc++ "${file}" -o "${file%.*}"
+        bash build.sh
     fi
 
     set -e
@@ -118,28 +274,37 @@ project_build(){
 project_debug(){
     set +e
 
-    gdb --se ${arg1%.*}
+
+    if [ ! -f "./debug.sh" ];
+    then
+        echo "No ${red}debug.sh${reset} file found.  Do ${red}[C]${reset}onfigure to create one"
+    else
+        bash debug.sh
+    fi
+
 
     set -e
 }
 
 
+project_valgrind(){
+    set +e
+
+    local file=$1
+
+    valgrind --leak-check=full ./$file
+
+}
+
 
 project_run(){
     set +e
 
-    file=$1
-    echo
-    echo "Executing: $1"
-    echo
-    if [ -z "$file" ];
+    if [ ! -f "./run.sh" ];
     then
-        echo "No file to execute"
-        echo "Enter filename: "
-        read file
-        project_run $file $arg2
+        echo "No ${red}run.sh${reset} file found.  Do ${red}[C]${reset}onfigure to create one"
     else
-        ./$file $arg2
+        bash run.sh
     fi
 
     set -e
@@ -153,24 +318,31 @@ project_edit(){
     echo "${red}[L]${yellow}ast (${cyan}${lastEditedFile}${yellow}) - Enter filename: ${reset}"
     read filename
 
+
     if [ -z $filename ] && [ -z $lastEditedFile ];
     then
-    echo "No filename provided"
-    elif [ $filename = "l" ];
+        echo "No filename provided"
+    elif [ "$filename" = "l" ];
     then
         path=$(find -type f -name $lastEditedFile)
-        echo "Opening last file: $path"
+        echo "ONE Opening last file: $path"
+        check_file_exists $path
         nano $path
+        unset path
     elif [ -z $filename ];
     then
-        path=$(find -type f -name $lastEditedFile)
-        echo "Opening last file: $path"
+#        path=$(find -type f -name $lastEditedFile)
+        echo "TWO Opening last file: $path"
+        check_file_exists $lastEditedFile
         nano $path
+        unset path
     else
-        path=$(find -type f -wholename $filename)
-        echo "Opening file: $path"
+#        path=$(find -type f -name $filename)
+        echo "THREE Opening file: $path"
+        check_file_exists $filename
         nano $path
         lastEditedFile=$filename
+        unset path
     fi
 
     set -e
@@ -195,7 +367,7 @@ project_hexedit(){
     if [ -z $filename ] && [ -z $lastHexEditedFile ];
     then
     echo "No filename provided"
-    elif [ $filename = "l" ];
+    elif [ "$filename" = "l" ];
     then
         path=$(find -type f -name $lastHexEditedFile)
         echo "Opening last file: $path"
@@ -229,6 +401,16 @@ hexedit(){
 
 
 
+project_exit(){
+    # do cleanup
+
+    # switch back to primary screen buffer
+    # no effect if already running on the primary buffer
+    tput rmcup
+    exit
+}
+
+
 
 ########################
 #    main menu loop    #
@@ -238,6 +420,8 @@ while :
 do
 
 echo "${cyan}-----------------------------${reset}"
+echo "${yellow}Project root: $(pwd)${reset}"
+echo "${cyan}-----------------------------${reset}"
 #echo "${cyan}SOURCES"
 echo "\
 ${red}[L]${reset}ist sources - \
@@ -246,11 +430,13 @@ ${red}[E]${reset}dit sources"
 echo "${cyan}-----------------------------${reset}"
 #echo "${cyan}BUILD"
 echo "\
-${red}[B]${reset}uild"
+${red}[B]${reset}uild - \
+${red}[C]${reset}onfigure"
 echo "${cyan}-----------------------------${reset}"
 #echo "${cyan}DEBUG"
 echo "\
 ${red}[D]${reset}ebug - \
+${red}[V]${reset}algrind - \
 ${red}[H]${reset}exEdit -\
 ${red}[R]${reset}un"
 echo "${cyan}-----------------------------${reset}"
@@ -274,11 +460,19 @@ case $input in
   ;;
 
   [bB])
-    project_build $arg1
+    project_build
+  ;;
+
+  [cC])
+    project_configure
   ;;
 
   [dD])
     project_debug
+  ;;
+
+  [vV])
+    project_valgrind ${exe}
   ;;
 
   [hH])
@@ -286,11 +480,11 @@ case $input in
   ;;
 
   [rR])
-    project_run ${arg1%.*}
+    project_run ${exe}
   ;;
 
   [xX])
-  exit
+    project_exit
   ;;
 
 esac
