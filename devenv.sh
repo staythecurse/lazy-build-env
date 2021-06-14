@@ -315,6 +315,8 @@ project_run(){
 project_edit(){
     set +e
 
+    local opts=$1
+
     echo "${red}[L]${yellow}ast (${cyan}${lastEditedFile}${yellow}) - Enter filename: ${reset}"
     read filename
 
@@ -325,22 +327,22 @@ project_edit(){
     elif [ "$filename" = "l" ];
     then
         path=$(find -type f -name $lastEditedFile)
-        echo "ONE Opening last file: $path"
         check_file_exists $path
-        nano $path
+        echo "ONE Opening last file: $path"
+        nano $opts $path
         unset path
     elif [ -z $filename ];
     then
 #        path=$(find -type f -name $lastEditedFile)
-        echo "TWO Opening last file: $path"
         check_file_exists $lastEditedFile
-        nano $path
+        echo "TWO Opening last file: $path"
+        nano $opts $path
         unset path
     else
 #        path=$(find -type f -name $filename)
-        echo "THREE Opening file: $path"
         check_file_exists $filename
-        nano $path
+        echo "THREE Opening file: $path"
+        nano $opts $path
         lastEditedFile=$filename
         unset path
     fi
@@ -457,6 +459,10 @@ case $input in
 
   [eE])
     project_edit
+  ;;
+
+  [eE][rR])
+    project_edit "-v"
   ;;
 
   [bB])
