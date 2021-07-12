@@ -26,10 +26,18 @@ exe=${arg1%.*} # executable file to build same as source without file extention 
 
 
 
+# DEFAULTS
+debugGUI=false
+useAltScrBuff=false
+
 
 # TOOLCHAIN
+editor="nano"
+debuggerConsole="gdb"
+debuggerGUI="gdbgui"
+debugger=$debuggerConsole
 hexeditor="hexcurse"
-debugger="gdb"
+
 
 # COMPILER CONFIG
 # additional include directories
@@ -46,15 +54,20 @@ scripts="*.sh"
 makefile="make.config"
 
 
-# use the alternate screen buffer (output lost upon exiting devenv)
-#tput smcup
-
 
 # -----------------------
 ###
 ##### END CONFIG OPTIONS
 ###
 # -----------------------
+
+# use the alternate screen buffer (output lost upon exiting devenv)
+# set with useAltScrBuff options
+
+if [ $useAltScrBuff = "true" ];
+then
+    tput smcup
+fi
 
 
 
@@ -204,9 +217,9 @@ project_configure(){
     fi
 
 
-    nano build.sh
-    nano run.sh
-    nano debug.sh
+    $editor build.sh
+    $editor run.sh
+    $editor debug.sh
 
     set -e
 }
@@ -287,6 +300,17 @@ project_debug(){
 }
 
 
+
+project_debug_gui(){
+    set +e
+
+    $debuggerGUI -r ${exe}
+
+    set -e
+}
+
+
+
 project_valgrind(){
     set +e
 
@@ -329,20 +353,20 @@ project_edit(){
         path=$(find -type f -name $lastEditedFile)
         check_file_exists $path
         echo "ONE Opening last file: $path"
-        nano $opts $path
+        $editor $opts $path
         unset path
     elif [ -z $filename ];
     then
 #        path=$(find -type f -name $lastEditedFile)
         check_file_exists $lastEditedFile
         echo "TWO Opening last file: $path"
-        nano $opts $path
+        $editor $opts $path
         unset path
     else
 #        path=$(find -type f -name $filename)
         check_file_exists $filename
         echo "THREE Opening file: $path"
-        nano $opts $path
+        $editor $opts $path
         lastEditedFile=$filename
         unset path
     fi
@@ -403,12 +427,29 @@ hexedit(){
 
 
 
+
+
+spawn_shell(){
+    set +e
+
+    bash
+
+    set -e
+}
+
+
+
+
 project_exit(){
     # do cleanup
 
     # switch back to primary screen buffer
-    # no effect if already running on the primary buffer
-    tput rmcup
+    if [ $useAltScrBuff = "true" ];
+    then
+        echo "tput rmcup"
+        tput rmcup
+    fi
+
     exit
 }
 
@@ -425,25 +466,32 @@ echo "${cyan}-----------------------------${reset}"
 echo "${yellow}Project root: $(pwd)${reset}"
 echo "${cyan}-----------------------------${reset}"
 #echo "${cyan}SOURCES"
+
 echo "\
 ${red}[L]${reset}ist sources - \
 ${red}[S]${reset}earch sources - \
 ${red}[E]${reset}dit sources"
+
 echo "${cyan}-----------------------------${reset}"
 #echo "${cyan}BUILD"
+
 echo "\
 ${red}[B]${reset}uild - \
-${red}[C]${reset}onfigure"
+${red}[C]${reset}onfigure \
+${red}[~]${reset}Shell"
+
 echo "${cyan}-----------------------------${reset}"
 #echo "${cyan}DEBUG"
+
 echo "\
 ${red}[D]${reset}ebug - \
 ${red}[V]${reset}algrind - \
 ${red}[H]${reset}exEdit -\
 ${red}[R]${reset}un"
+
 echo "${cyan}-----------------------------${reset}"
-echo "\
-e${red}[X]${reset}it"
+
+echo "e${red}[X]${reset}it"
 
 read input
 
@@ -474,7 +522,12 @@ case $input in
   ;;
 
   [dD])
-    project_debug
+    if [ $debugGUI = "true" ];
+    then
+      project_debug_gui
+    else
+      project_debug
+    fi
   ;;
 
   [vV])
@@ -487,6 +540,10 @@ case $input in
 
   [rR])
     project_run ${exe}
+  ;;
+
+  [~])
+    spawn_shell
   ;;
 
   [xX])
