@@ -148,19 +148,29 @@ create_build_script(){
            "includePath=\"${addIncludes}\"" \
            "sourceFiles=\"${sourceFile}\"" \
            "outFile=\"${exe}\"" \
-           "linkLibs=\"\"" \
+           "libs=\"\"" \
            "CFLAGS=\"\"" \
            "" \
-           "echo \"Compiling...\"" \
+           "for lib in \$libs" \
+           "do" \
+           "  linkLibs=\"\${linkLibs} -l\${lib}\"" \
+           "done" \
            "" \
-           "time \\" \
+           "compileCommand=\"" \
            "\${compiler} \\" \
            "\${compilerArgs} \\" \
            "-I\${includePath} \\" \
            "\${sourceFiles} \\" \
            "-o \${outFile} \\" \
-           "#-l\${linkLibs} \\" \
-           "#\${CFLAGS} \\" \
+           "\${linkLibs} \\" \
+           "\${CFLAGS} \\" \
+           "\"" \
+           "" \
+           "echo \"Compiling...\"" \
+           "" \
+           "echo \$compileCommand" \
+           "" \
+           "time \$compileCommand" \
     >> "$output"
 
     set -e
@@ -477,7 +487,7 @@ echo "${cyan}-----------------------------${reset}"
 
 echo "\
 ${red}[B]${reset}uild - \
-${red}[C]${reset}onfigure \
+${red}[C]${reset}onfigure - \
 ${red}[~]${reset}Shell"
 
 echo "${cyan}-----------------------------${reset}"
@@ -486,7 +496,7 @@ echo "${cyan}-----------------------------${reset}"
 echo "\
 ${red}[D]${reset}ebug - \
 ${red}[V]${reset}algrind - \
-${red}[H]${reset}exEdit -\
+${red}[H]${reset}exEdit - \
 ${red}[R]${reset}un"
 
 echo "${cyan}-----------------------------${reset}"
