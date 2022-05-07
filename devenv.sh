@@ -6,9 +6,6 @@
 # this script is run from.
 
 
-
-
-
 set -e
 
 arg1=$1 # source file name including dot file extention e.g. "test.cc"
@@ -16,7 +13,6 @@ arg2=$2 # argument to program # DEPRECATED - use "run.sh" config file
 
 sourceFile=${arg1}
 exe=${arg1%.*} # executable file to build same as source without file extention e.g. "test"
-
 
 # -----------------------
 ###
@@ -27,9 +23,16 @@ exe=${arg1%.*} # executable file to build same as source without file extention 
 
 
 # DEFAULTS
-debugGUI=false
+GUIdebug=true
 useAltScrBuff=false
 
+# SEARCH
+# searchMode can be chanaged by entering the mode e.g. REGEX at the search prompt
+searchMode="AND"
+#searchMode="OR"
+#searchMode="REGEX"
+# comma seperated list of file extensions to exclude from searches
+fileTypeExcludes="o,a,kernel,iso"
 
 # TOOLCHAIN
 editor="nano"
@@ -70,8 +73,6 @@ then
 fi
 
 
-
-
 # script colors
 black=`tput setaf 0`
 red=`tput setaf 1`
@@ -105,6 +106,13 @@ echo "${green}+----------------------+"
         echo "| Lazy Build Env v0.01 |"
         echo "+----------------------+${reset}"
 
+
+
+regex_grep(){
+    echo "${yellow}Searching source files for ${cyan}${searchString}${yellow}${reset}\n"
+    echo "${cyan}$(grep --exclude=*.["$fileTypeExcludes"] -ERnli "$searchString")${reset}\n"
+    echo "${cyan}$(grep --exclude=*.["$fileTypeExcludes"] -ERni "$searchString" | wc -l) ${reset}results in ${cyan}$(grep --exclude=*.["$fileTypeExcludes"] -ERnli "$searchString" | wc -l) ${reset}files\n"
+}
 
 
 
@@ -141,7 +149,7 @@ create_build_script(){
     # create a default build.sh file
     output="build.sh"
     printf '%s\n' \
-           "#!/bin/bash" \
+           "#!/bin/sh" \
            "" \
            "compiler=\"g++\"" \
            "compilerArgs=\"-g\"" \
@@ -183,7 +191,7 @@ create_run_script(){
 
     output="run.sh"
     printf '%s\n' \
-           "#!/bin/bash" \
+           "#!/bin/sh" \
            "" \
            "./${exe}" \
     >> "$output"
@@ -198,7 +206,7 @@ create_debug_script(){
 
     output="debug.sh"
     printf '%s\n' \
-           "#!/bin/bash" \
+           "#!/bin/sh" \
            "" \
            "${debugger} -f ${exe}" \
     >> "$output"
@@ -268,12 +276,41 @@ project_list(){
 project_search(){
     set +e
 
-    echo "${yellow}Search string: ${reset}"
-    read searchString
-    echo
-    echo "${yellow}Searching source files for ${cyan}${searchString}${yellow}${reset}\n"
-    echo "${cyan}$(grep --exclude={\*.o,\*.a,\*.kernel,\*.iso} -Rnli "$searchString")${reset}\n"
-    echo "${cyan}$(grep --exclude={\*.o,\*.a,\*.kernel,\*.iso} -Rni "$searchString" | wc -l) ${reset}results in ${cyan}$(grep --exclude={\*.o,\*.a,\*.kernel,\*.iso} -Rnli "$searchString" | wc -l) ${reset}files\n"
+    echo "${yellow}Search Mode: ${cyan}${searchMode}${reset}"
+    echo "${yellow}Search string(s) seperated by spaces: ${reset}"
+    read searchStrings
+    if [ "$searchStrings" = "AND" ];
+    then
+        searchMode="AND"
+        project_search
+        return
+    elif [ "$searchStrings" = "OR" ];
+    then
+        searchMode="OR"
+        project_search
+        return
+    elif [ "$searchStrings" = "REGEX" ];
+    then
+        searchMode="REGEX"
+        project_search
+        return
+    fi
+
+    case $searchMode in
+      OR)
+        for searchString in $searchStrings
+        do
+            regex_grep
+        done
+      ;;
+      AND)
+          searchString=$(echo $searchStrings | sed -r 's/[ ]+/|/g')
+          regex_grep
+      ;;
+      REGEX)
+          searchString=$searchStrings
+          regex_grep
+    esac
 
     set -e
 }
@@ -286,7 +323,7 @@ project_build(){
     then
         echo "No ${red}build${reset} file found.  Do ${red}[C]${reset}onfigure to create one"
     else
-        bash build.sh
+        sh build.sh
     fi
 
     set -e
@@ -302,7 +339,7 @@ project_debug(){
     then
         echo "No ${red}debug.sh${reset} file found.  Do ${red}[C]${reset}onfigure to create one"
     else
-        bash debug.sh
+        sh debug.sh
     fi
 
 
@@ -314,7 +351,13 @@ project_debug(){
 project_debug_gui(){
     set +e
 
-    $debuggerGUI -r ${exe}
+    command -v $debuggerGUI -r ${exe}
+    retval=$?
+    if [ "$retval" -gt 0 ];
+    then
+      echo "${red}Failed to open GUI debug interface, using command line debug${reset}"
+      project_debug
+    fi
 
     set -e
 }
@@ -338,7 +381,7 @@ project_run(){
     then
         echo "No ${red}run.sh${reset} file found.  Do ${red}[C]${reset}onfigure to create one"
     else
-        bash run.sh
+        sh run.sh
     fi
 
     set -e
@@ -362,20 +405,15 @@ project_edit(){
     then
         path=$(find -type f -name $lastEditedFile)
         check_file_exists $path
-        echo "ONE Opening last file: $path"
         $editor $opts $path
         unset path
     elif [ -z $filename ];
     then
-#        path=$(find -type f -name $lastEditedFile)
         check_file_exists $lastEditedFile
-        echo "TWO Opening last file: $path"
         $editor $opts $path
         unset path
     else
-#        path=$(find -type f -name $filename)
         check_file_exists $filename
-        echo "THREE Opening file: $path"
         $editor $opts $path
         lastEditedFile=$filename
         unset path
@@ -442,7 +480,8 @@ hexedit(){
 spawn_shell(){
     set +e
 
-    bash
+    export PS1="${cyan}$USER${yellow}@${cyan}DEVENV: ${reset}"
+    sh
 
     set -e
 }
@@ -532,7 +571,7 @@ case $input in
   ;;
 
   [dD])
-    if [ $debugGUI = "true" ];
+    if [ $GUIdebug = "true" ];
     then
       project_debug_gui
     else
