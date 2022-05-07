@@ -276,7 +276,19 @@ project_list(){
 project_search(){
     set +e
 
-    echo "${yellow}Search Mode: ${cyan}${searchMode}${reset}"
+    if [ "$searchMode" = "AND" ];
+    then
+        echo "${yellow}Search Mode: ${reset}${green}[AND]${reset} - [OR] - [REGEX]"
+    elif [ "$searchMode" = "OR" ];
+    then
+        echo "${yellow}Search Mode: ${reset}[AND] - ${green}[OR]${reset} - [REGEX]"
+    elif [ "$searchMode" = "REGEX" ];
+    then
+        echo "${yellow}Search Mode: ${reset}[AND] - [OR] - ${green}[REGEX]${reset}"
+    fi
+
+
+
     echo "${yellow}Search string(s) seperated by spaces: ${reset}"
     read searchStrings
     if [ "$searchStrings" = "AND" ];
