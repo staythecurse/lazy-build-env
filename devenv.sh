@@ -67,7 +67,7 @@ makefile="make.config"
 # use the alternate screen buffer (output lost upon exiting devenv)
 # set with useAltScrBuff options
 
-if [ $useAltScrBuff = "true" ];
+if [ "$useAltScrBuff" = "true" ];
 then
     tput smcup
 fi
@@ -123,7 +123,7 @@ check_file_exists(){
 
     path=$(find -type f -name $filename)
 
-    if [ -z $path ];
+    if [ -z "$path" ];
     then
         printf "File: ${red}${filename}${reset} does not exist. Create it?"
         read input
@@ -306,6 +306,10 @@ project_search(){
         searchMode="REGEX"
         project_search
         return
+    elif [ -z "$searchStrings" ];
+    then
+        echo "${red}No search string provided${reset}"
+        return
     fi
 
     case $searchMode in
@@ -410,7 +414,7 @@ project_edit(){
     read filename
 
 
-    if [ -z $filename ] && [ -z $lastEditedFile ];
+    if [ -z "$filename" ] && [ -z "$lastEditedFile" ];
     then
         echo "No filename provided"
     elif [ "$filename" = "l" ];
@@ -419,7 +423,7 @@ project_edit(){
         check_file_exists $path
         $editor $opts $path
         unset path
-    elif [ -z $filename ];
+    elif [ -z "$filename" ];
     then
         check_file_exists $lastEditedFile
         $editor $opts $path
@@ -450,7 +454,7 @@ project_hexedit(){
     echo "${red}[L]${yellow}ast (${cyan}${lastHexEditedFile}${yellow}) - Enter filename: ${reset}"
     read filename
 
-    if [ -z $filename ] && [ -z $lastHexEditedFile ];
+    if [ -z "$filename" ] && [ -z "$lastHexEditedFile" ];
     then
     echo "No filename provided"
     elif [ "$filename" = "l" ];
@@ -458,7 +462,7 @@ project_hexedit(){
         path=$(find -type f -name $lastHexEditedFile)
         echo "Opening last file: $path"
         $hexeditor $path
-    elif [ -z $filename ];
+    elif [ -z "$filename" ];
     then
         path=$(find -type f -name $lastHexEditedFile)
         echo "Opening last file: $path"
@@ -505,7 +509,7 @@ project_exit(){
     # do cleanup
 
     # switch back to primary screen buffer
-    if [ $useAltScrBuff = "true" ];
+    if [ "$useAltScrBuff" = "true" ];
     then
         echo "tput rmcup"
         tput rmcup
@@ -573,7 +577,7 @@ case $input in
   ;;
 
   [dD])
-    if [ $GUIdebug = "true" ];
+    if [ "$GUIdebug" = "true" ];
     then
       project_debug_gui
     else
