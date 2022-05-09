@@ -103,7 +103,7 @@ lastHexeditedfile=''
 
 
 echo "${green}+----------------------+"
-        echo "| Lazy Build Env v0.01 |"
+        echo "| Lazy Build Env v0.02 |"
         echo "+----------------------+${reset}"
 
 
@@ -263,7 +263,7 @@ project_list(){
     echo "\n${green}Assembly:  ${reset}\n"
     find -name "$asm"
 
-    echo "\n${green}Build Scripts: ${reset}\n"
+    echo "\n${green}Shell Scripts: ${reset}\n"
     find -name "$scripts"
 
     echo "\n${green}Make files: ${reset}\n"
@@ -523,36 +523,26 @@ project_exit(){
 while :
 do
 
-echo "${cyan}-----------------------------${reset}"
-echo "${yellow}Project root: $(pwd)${reset}"
-echo "${cyan}-----------------------------${reset}"
-#echo "${cyan}SOURCES"
+echo  "${cyan}--------------------------------------------${reset}"
+echo "${yellow}$(pwd)${reset}"
 
 echo "\
-${red}[L]${reset}ist sources - \
-${red}[S]${reset}earch sources - \
-${red}[E]${reset}dit sources"
-
-echo "${cyan}-----------------------------${reset}"
-#echo "${cyan}BUILD"
+${red}[L]${reset}ist    \
+${red}[S]${reset}earch      \
+${red}[E]${reset}dit"
 
 echo "\
-${red}[B]${reset}uild - \
-${red}[C]${reset}onfigure - \
+${red}[B]${reset}uild   \
+${red}[C]${reset}onfigure   \
 ${red}[~]${reset}Shell"
 
-echo "${cyan}-----------------------------${reset}"
-#echo "${cyan}DEBUG"
-
 echo "\
-${red}[D]${reset}ebug - \
-${red}[V]${reset}algrind - \
-${red}[H]${reset}exEdit - \
+${red}[D]${reset}ebug   \
+${red}[V]${reset}algrind    \
+${red}[H]${reset}exEdit   \
 ${red}[R]${reset}un"
+echo  "${cyan}--------------------------------------------${reset}"
 
-echo "${cyan}-----------------------------${reset}"
-
-echo "e${red}[X]${reset}it"
 
 read input
 
