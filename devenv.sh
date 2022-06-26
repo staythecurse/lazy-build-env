@@ -370,7 +370,7 @@ project_debug(){
 project_debug_gui(){
     set +e
 
-    command -v $debuggerGUI -r ${exe}
+    $debuggerGUI -r ${exe}
     retval=$?
     if [ "$retval" -gt 0 ];
     then
