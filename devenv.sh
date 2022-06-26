@@ -165,6 +165,7 @@ create_build_script(){
            "done" \
            "" \
            "compileCommand=\"" \
+           "time \\" \
            "\${compiler} \\" \
            "\${compilerArgs} \\" \
            "-I\${includePath} \\" \
@@ -174,11 +175,13 @@ create_build_script(){
            "\${CFLAGS} \\" \
            "\"" \
            "" \
-           "echo \"Compiling...\"" \
            "" \
            "echo \$compileCommand" \
            "" \
-           "time \$compileCommand" \
+           "echo \"Compiling...\"" \
+           "echo" \
+           "" \
+           "eval  \$compileCommand" \
     >> "$output"
 
     set -e
@@ -339,7 +342,7 @@ project_build(){
     then
         echo "No ${red}build${reset} file found.  Do ${red}[C]${reset}onfigure to create one"
     else
-        sh build.sh
+        bash build.sh
     fi
 
     set -e
